@@ -137,7 +137,7 @@ class FSTGenerator:
 			warnings.resetwarnings()
 		sys.stderr.write(f"\rprocessed {meta}       \n")
 
-	def sfst(self, output=None,freq_cutoff=0,ignore_case=True):
+	def sfst(self, output=None,freq_cutoff=0,ignore_case=True, skip_identicals=False):
 		""" spellout as SFST grammar
 
 			use freq_cutoff to eliminate low-frequency mappings 
@@ -169,12 +169,17 @@ class FSTGenerator:
 					# escape or filter here, if necessary
 					src=escape(src,SFST_REPLACEMENTS)
 					tgt=escape(tgt,SFST_REPLACEMENTS)
-					vals.append("{"+src+"}:{"+tgt+"} % freq "+str(freq))
+					if not skip_identicals or (not ignore_case and src!=tgt) or (ignore_case and src.lower()!=tgt.lower()):
+						vals.append("{"+src+"}:{"+tgt+"} % freq "+str(freq))
 		if len(vals)==0:
 			raise Exception(f"empty grammar with frequency cutoff {freq_cutoff}")
 		
 		sys.stderr.write(f"=> {len(vals)} replacement rules\n")
 		vals=" \\\n\t| ".join(vals)
+
+		ident_rule=""
+		if skip_identicals:
+			ident_rule= "| .*"
 
 		alph="".join(sorted(set(list(salph)+list(talph))))
 		salph="".join(sorted(salph))
@@ -192,7 +197,7 @@ ALPHABET=[#SALPH#] [#TALPH#] {case_rule}
 
 {name}={vals}
 
-.+ || [#SALPH#]+ || {name} || [#TALPH#]+\n""")
+.+ || [#SALPH#]+ || {name} {ident_rule} || [#TALPH#]+\n""")
 
 		output.flush()
 
@@ -213,6 +218,7 @@ if __name__ == "__main__":
 	args.add_argument("-o","--output", type=str, help="output file to write the FST grammar into (by default, write to stdout)")
 	args.add_argument("-i","--ignore_case", action="store_true", help="if set, tolerate upper and lower case variation in the input (in generation)")
 	args.add_argument("-s","--splitter_symbols",type=str,help="sometimes, Toolbox users cannot decide which analysis is correct and may put alternative analyses, separated by a special marker, e.g., ,, use this for splitting automatically, for the target marker, only")
+	args.add_argument("-noident","--skip_identicals", action="store_true", help="if words on both ends are identical, don't create an extra rule, note that the resulting transducer will then be extended to spellout identical forms *in all cases*")
 	args=args.parse_args()
 
 	if args.output==None:
@@ -239,6 +245,6 @@ if __name__ == "__main__":
 	me.add(args.files,splitter=args.splitter_symbols)
 	# pprint(me.src2tgt2freq)
 
-	me.sfst(args.output,freq_cutoff=args.freq_cutoff, ignore_case=args.ignore_case)
+	me.sfst(args.output,freq_cutoff=args.freq_cutoff, ignore_case=args.ignore_case, skip_identicals=args.skip_identicals)
 	args.output.flush()
 	args.output.close()
