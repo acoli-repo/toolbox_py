@@ -15,7 +15,7 @@ import sys,os,re, argparse
 import toolbox
 from io import StringIO
 from pprint import pprint
-
+import warnings
 
 SFST_REPLACEMENTS={"=":"\\=", "-":"\\-", "|":"\\|"}
 
@@ -25,6 +25,20 @@ def escape(string:str, replacements:dict):
 		if src in string:
 			string=tgt.join(string.split(src))
 	return string
+
+def split(string:str, splitter_symbols):
+	base=[string]
+	result=[]
+	for symbol in splitter_symbols:
+		for string in base:
+			if not symbol in string:
+				result.append(string)
+			else:
+				result+=string.split(symbol)
+		base=result
+		result=[]
+	result = [ b.strip() for b in base if len(b.strip())>0 ]
+	return result
 
 class FSTGenerator:
 
@@ -70,13 +84,13 @@ class FSTGenerator:
 		self.source=source
 		self.target=target
 
-	def add(self, input):
+	def add(self, input, splitter=""):
 		""" input is either a file name, a string, a list of these or a stream """
 		if isinstance(input,str):
 			# string denotes a file
 			if os.path.exists(input):
 				with open(input,"rt",errors="ignore") as input:
-					self.add(input)
+					self.add(input,splitter=splitter)
 					return
 			# string may be a toolbox text => stream
 			input=StringIO(input)
@@ -84,7 +98,7 @@ class FSTGenerator:
 		if isinstance(input,list):
 			# list => iterate
 			for i in input:
-				self.add(i)
+				self.add(i,splitter=splitter)
 			return
 
 		# => processing an IGT stream
@@ -95,23 +109,32 @@ class FSTGenerator:
 		
 		# aggregate according to document and record ids
 		for (meta,record) in toolbox.records(raw,self.record_keys):
-			meta=" ".join([ " ".join( [ f"{x}" for  x in i ]) for i in sorted(meta.items()) ])
+			try:
+				warnings.simplefilter('ignore')
+				meta=" ".join([ " ".join( [ f"{x}" for  x in i ]) for i in sorted(meta.items()) ])
 
-			# merge multi-line glosses
-			record=toolbox.normalize_record(record,[self.source,self.target])
-			# tokenize and align spans between relevant marker layers
-			mkr2span= { mkr: span \
-						for mkr, span \
-						in toolbox.align_fields(record, alignments=alignments) \
-						if mkr in [self.source,self.target] }
-			if len(mkr2span)==2:
-				sys.stderr.write(f"\rprocess {meta}       ")
+				# merge multi-line glosses
+				record=toolbox.normalize_record(record,[self.source,self.target])
+				# tokenize and align spans between relevant marker layers
+				mkr2span= { mkr: span \
+							for mkr, span \
+							in toolbox.align_fields(record, alignments=alignments) \
+							if mkr in [self.source,self.target] }
+				if len(mkr2span)==2:
+					sys.stderr.write(f"\rprocess {meta}       ")
+					sys.stderr.flush()
+					for src,tgt in mkr2span[self.target]:
+						tgt=self.segment_separator.join(tgt)
+						# this is a unique target, however, alternative analyses may be possible, then marked by splitter symbols, and
+						# we treat each one as an equally possible alternative
+						for tgt in split(tgt,splitter):
+							if not src in self.src2tgt2freq: self.src2tgt2freq[src]={}
+							if not tgt in self.src2tgt2freq[src]: self.src2tgt2freq[src][tgt]=0
+							self.src2tgt2freq[src][tgt]+=1
+			except toolbox.ToolboxAlignmentError as e:
+				sys.stderr.write(f"\rskipping {meta}: {e}\n")
 				sys.stderr.flush()
-				for src,tgt in mkr2span[self.target]:
-					tgt=self.segment_separator.join(tgt)
-					if not src in self.src2tgt2freq: self.src2tgt2freq[src]={}
-					if not tgt in self.src2tgt2freq[src]: self.src2tgt2freq[src][tgt]=0
-					self.src2tgt2freq[src][tgt]+=1
+			warnings.resetwarnings()
 		sys.stderr.write(f"\rprocessed {meta}       \n")
 
 	def sfst(self, output=None,freq_cutoff=0,ignore_case=True):
@@ -157,6 +180,7 @@ class FSTGenerator:
 		salph="".join(sorted(salph))
 		talph="".join(sorted(talph))
 		
+		case_rule=""
 		if ignore_case:
 			case_rule="["+"".join(sorted(set(alph.upper())))+"]:["+"".join(sorted(set(alph.lower())))+"]"
 			case_rule+=" ["+"".join(sorted(set(alph.lower())))+"]:["+"".join(sorted(set(alph.upper())))+"]"
@@ -188,6 +212,7 @@ if __name__ == "__main__":
 	args.add_argument("-f","--freq_cutoff",type=int,help="frequency cutoff to eliminate hapaxes, set to 0 or smaller to keep all", default=0)
 	args.add_argument("-o","--output", type=str, help="output file to write the FST grammar into (by default, write to stdout)")
 	args.add_argument("-i","--ignore_case", action="store_true", help="if set, tolerate upper and lower case variation in the input (in generation)")
+	args.add_argument("-s","--splitter_symbols",type=str,help="sometimes, Toolbox users cannot decide which analysis is correct and may put alternative analyses, separated by a special marker, e.g., ,, use this for splitting automatically, for the target marker, only")
 	args=args.parse_args()
 
 	if args.output==None:
@@ -198,9 +223,20 @@ if __name__ == "__main__":
 	if len(args.files)==0:
 		sys.stderr.write(f"reading Toolbox data from stdin, note that we require markers {args.source} and {args.target} in the data\n")
 		args.files.append(sys.stdin)
+	else:
+		i=0
+		while(i<len(args.files)):
+			file=args.files[i]
+			if os.path.isdir(file):
+				args.files+=[os.path.join(file,f) for f in os.listdir(file)]
+				args.files=args.files[0:i]+args.files[i+1:]
+			elif file.lower().endswith("txt") and not "backup of" in file.lower():
+				i+=1
+			else: # not a toolbox file
+				args.files=args.files[0:i]+args.files[i+1:]
 
 	me=FSTGenerator(args.source, args.target)
-	me.add(args.files)
+	me.add(args.files,splitter=args.splitter_symbols)
 	# pprint(me.src2tgt2freq)
 
 	me.sfst(args.output,freq_cutoff=args.freq_cutoff, ignore_case=args.ignore_case)
