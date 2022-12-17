@@ -10,6 +10,7 @@ Standard Format Markers (SFM) format. The basic format looks like this:
 Where `\mkr` is called a *marker* and is followed by a space, then one
 or more lines of text.
 
+The original code base is [https://github.com/goodmami/toolbox](https://github.com/goodmami/toolbox) by [Michael Wayne Goodman](https://github.com/goodmami) and [Elizabeth Conrad](https://github.com/lizcconrad). This fork is for an experimental extension with a routine to bootstrap SFST transducers from Toolbox data. This will use the Toolbox package, but as this is available via GitHub only, we're just creating a bundle ;)
 
 ## Basic Usage
 
@@ -152,6 +153,36 @@ alignments. The result is a list of (marker, aligned_data) pairs, where
 
 ```
 
+## Extensions
+
+### Bootstrapping FST grammars
+
+Finite State Transducers (FST) are a very well-established formalism for rule-based transliteration, normalization and morphological annotation (and other fields). The package `tb2fst.py` uses the Toolbox package to bootstrap FST grammars from Toolbox dictionaries or glossed text.
+
+There are various FST formalisms, at the moment, we support SFST, as this is readily available under various Linux distributions. The following is tested under Ubuntu 20.04L.
+
+```bash
+python3 tb2fst.py \tx \sf example/sliekkas_DK_1595.txt -f 0 -o sliekkas.fst -i
+```
+
+Run `python3 tb2fst.py -h` to get a more detailed explanation on the options. Here, we want to bootstrap a grammar that takes `\tx` input and produces `\sf` output (both referring to the original Toolbox markers). One or more Toolbox files or directories containing Toolbox files can be provided, here `example/sliekkas_DK_1595.txt`. For large data sets, `-f` can be used to specify a frequency threshold. `-o sliekkas.fst` specifies the resulting FST grammar. Finally, the flag `-i` indicates that the input (in generation mode) is processed in a case-insensitive manner.
+
+If you have SFST installed (see [here](https://wiki.apertium.org/wiki/SFST)for instructions, but note that SFST is readily available for many distros, already, see [here](https://launchpad.net/ubuntu/trusty/+package/sfst) for Ubuntu), you can compile the resulting grammar:
+
+```bash
+fst-compiler-utf8 sliekkas.fst sliekkas.a
+```
+
+The result can be tested with `fst-mor`:
+
+```bash
+fst-mor sliekkas.a
+```
+
+Switch to generation mode by hitting `<ENTER>` and enter a word, e.g., `arba`. It should perform the lookup automatically.
+
+Note that the resulting transducers are limited in their functionality to what Toolbox offers, as well. However, they can be combined with other FST grammars to handle aspects not covered by Toolbox-style dictionary lookup.
+   
 ## Examples and testing
 
 The examples in this README file and in the [`tests.md`](tests.md) file
@@ -164,6 +195,6 @@ python3 -m doctest README.md tests.md
 
 ## Acknowledgments
 
-This project is partially supported by the Affectedness project, under
+The development of the [original code base](https://github.com/goodmami/toolbox) by [Michael Wayne Goodman](https://github.com/goodmami) and [Elizabeth Conrad](https://github.com/lizcconrad) for parsing Toolbox files was partially supported by the Affectedness project, under
 the Singapore Ministry of Education Tier 2 grant (grant number
-MOE2013-T2-1-016).
+MOE2013-T2-1-016). The extension for bootstrapping SFST transducers from Toolbox files is developed by [Christian Chiarcos](github.com/chiarcos) in the project [The Postil Time Machine: Innereuropäischer Wissenstransfer als Graph](https://gepris.dfg.de/gepris/projekt/443985248?language=en), funded by the German Research Foundation (DFG, 2021-2025, grant number 443985248).
