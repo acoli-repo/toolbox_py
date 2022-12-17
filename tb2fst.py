@@ -17,7 +17,23 @@ from io import StringIO
 from pprint import pprint
 import warnings
 
-SFST_REPLACEMENTS={"=":"\\=", "-":"\\-", "|":"\\|"}
+SFST_REPLACEMENTS={
+	"\\":"\\\\",
+	"=":"\\=",
+	 "-":"\\-",
+	 "|":"\\|",
+	 ",":"\\,",
+	 ".":"\\.",
+	"(":"\\(",
+	")":"\\)",
+	":":"\\:",
+	"?":"\\?",
+	"&":"\\&",
+	" ":"\\ ",
+	"*":"\\*",
+	"[":"\\[",
+	"]":"\\]",
+	"!":"\\!"}
 
 def escape(string:str, replacements:dict):
 	""" apply all replacements that apply, in the order as they are stored in replacements, from left to right """
@@ -131,12 +147,12 @@ class FSTGenerator:
 							if not src in self.src2tgt2freq: self.src2tgt2freq[src]={}
 							if not tgt in self.src2tgt2freq[src]: self.src2tgt2freq[src][tgt]=0
 							self.src2tgt2freq[src][tgt]+=1
+				sys.stderr.write(f"\rprocessed {meta}       \n")
 			except toolbox.ToolboxAlignmentError as e:
 				sys.stderr.write(f"\rskipping {meta}: {e}\n")
 				sys.stderr.flush()
 			warnings.resetwarnings()
-		sys.stderr.write(f"\rprocessed {meta}       \n")
-
+			
 	def sfst(self, output=None,freq_cutoff=0,ignore_case=True, skip_identicals=False):
 		""" spellout as SFST grammar
 
@@ -184,15 +200,34 @@ class FSTGenerator:
 		alph="".join(sorted(set(list(salph)+list(talph))))
 		salph="".join(sorted(salph))
 		talph="".join(sorted(talph))
+		if "-" in salph: salph="".join(salph.split("-"))+"-"
+		if "-" in talph: talph="".join(talph.split("-"))+"-"
 		
 		case_rule=""
+		cased_chars=""
+		for c in alph:
+			if c.lower()!=c.upper():
+				cased_chars+=c.lower()
+		cased_chars="".join(sorted(set(cased_chars)))
+
 		if ignore_case:
-			case_rule="["+"".join(sorted(set(alph.upper())))+"]:["+"".join(sorted(set(alph.lower())))+"]"
-			case_rule+=" ["+"".join(sorted(set(alph.lower())))+"]:["+"".join(sorted(set(alph.upper())))+"]"
+			case_rule="["+cased_chars.lower()+cased_chars.upper()+"]:["+cased_chars.upper()+cased_chars.lower()+"]"
+			# case_rule=\
+			# 	"["+\
+			# 		escape("".join(sorted(set(alph.upper()))),SFST_REPLACEMENTS)+\
+			# 	"]:["+\
+			# 		escape("".join(sorted(set(alph.lower()))),SFST_REPLACEMENTS)+\
+			# 	"] ["+\
+			# 		escape("".join(sorted(set(alph.lower()))),SFST_REPLACEMENTS)+\
+			# 	"]:["+\
+			# 		escape("".join(sorted(set(alph.upper()))),SFST_REPLACEMENTS)+\
+			# 	"]"
 
 		output.write(f"""
 #SALPH#={escape(salph,SFST_REPLACEMENTS)}
+
 #TALPH#={escape(talph,SFST_REPLACEMENTS)}
+
 ALPHABET=[#SALPH#] [#TALPH#] {case_rule}
 
 {name}={vals}
