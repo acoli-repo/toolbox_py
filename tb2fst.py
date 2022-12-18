@@ -153,12 +153,14 @@ class FSTGenerator:
 				sys.stderr.flush()
 			warnings.resetwarnings()
 			
-	def sfst(self, output=None,freq_cutoff=0,ignore_case=True, skip_identicals=False):
+	def sfst(self, output=None,freq_cutoff=0,ignore_case=True, skip_identicals=False, reduction_window=-1):
 		""" spellout as SFST grammar
 
 			use freq_cutoff to eliminate low-frequency mappings 
 			if output is a stream or a file (name), write there,
 			otherwise, return a string 
+
+			with reduction window < 0, apply full-text matches, with 0, create rules for non-identical substrings, only, larger numbers entail a context window of preceding and following characters to be included in the match; values >= 0 entail -noident; defaults to -1",default=-1)
 		"""
 
 		if output==None:
@@ -171,27 +173,65 @@ class FSTGenerator:
 				return self.sfst(freq_cutoff=freq_cutoff,output=output)
 
 		# output stream
+
+		salph=set()
+		talph=set()
+		src2tgt2freq=self.src2tgt2freq
+		if reduction_window>=0:
+			# instead of full-word matches, store mismatching substrings, only; optionally, with predecing and following context (= -+ reduction_window)
+			src2tgt2freq={}
+			for src in self.src2tgt2freq:
+				salph.update(src)
+				for tgt,freq in self.src2tgt2freq[src].items():
+					talph.update(tgt)
+
+					if ignore_case:
+						src=src.lower()
+						tgt=tgt.lower()
+					if src!=tgt:
+						start=0
+						while(start<len(src) and start<len(tgt) and src[start]==tgt[start]):
+							start+=1
+						end=-1
+						while(-end <len(src) and -end <len(tgt) and src[end]==tgt[end]):
+							end-=1
+						
+						src=src[max(0,start-reduction_window):min(len(src),len(src)+1+end+reduction_window)].strip()
+						tgt=tgt[max(0,start-reduction_window):min(len(tgt),len(tgt)+1+end+reduction_window)].strip()
+						if src!="" and tgt!="":
+							if not src in src2tgt2freq: src2tgt2freq[src]={}
+							if not tgt in src2tgt2freq[src]: src2tgt2freq[src][tgt]=0
+							src2tgt2freq[src][tgt]+=freq
+
 		name=re.sub(r"[^A-Z0-9_]","",(self.source+"_to_"+self.target).upper())
 		name=f"${name}$"
 		vals=[]
-		salph=set()
-		talph=set()
-		for src in sorted(self.src2tgt2freq):
-			for tgt,freq in sorted(self.src2tgt2freq[src].items()):
+		for src in sorted(src2tgt2freq):
+			salph.update(src)
+			for tgt,freq in sorted(src2tgt2freq[src].items()):
 				if freq>freq_cutoff:
-					salph.update(src)
 					talph.update(tgt)
 
 					# escape or filter here, if necessary
 					src=escape(src,SFST_REPLACEMENTS)
 					tgt=escape(tgt,SFST_REPLACEMENTS)
-					if not skip_identicals or (not ignore_case and src!=tgt) or (ignore_case and src.lower()!=tgt.lower()):
-						vals.append("{"+src+"}:{"+tgt+"} % freq "+str(freq))
+					if not "\\" in src: # no idea where this comes from
+						if not skip_identicals or (not ignore_case and src!=tgt) or (ignore_case and src.lower()!=tgt.lower()):
+							vals.append("{"+src+"}:{"+tgt+"} % freq "+str(freq))
 		if len(vals)==0:
 			raise Exception(f"empty grammar with frequency cutoff {freq_cutoff}")
 		
 		sys.stderr.write(f"=> {len(vals)} replacement rules\n")
 		vals=" \\\n\t| ".join(vals)
+		# this doesn't account for overlaps, in the source data, there are none, but there may be in the resulting data
+
+		# if reduction_window<=0:
+		# 	# no overlap => apply at once, i.e., plain disjunction
+		# 	vals=" \\\n\t| ".join(vals)
+		# else: 
+		# 	# possible overlap => concatenate transducers
+		# 	# unfortunately, this times out
+		# 	vals="("+"\\\n\t | .)* || (".join(vals)+"\\\n\t| .)*"
 
 		ident_rule=""
 		if skip_identicals:
@@ -212,16 +252,6 @@ class FSTGenerator:
 
 		if ignore_case:
 			case_rule="["+cased_chars.lower()+cased_chars.upper()+"]:["+cased_chars.upper()+cased_chars.lower()+"]"
-			# case_rule=\
-			# 	"["+\
-			# 		escape("".join(sorted(set(alph.upper()))),SFST_REPLACEMENTS)+\
-			# 	"]:["+\
-			# 		escape("".join(sorted(set(alph.lower()))),SFST_REPLACEMENTS)+\
-			# 	"] ["+\
-			# 		escape("".join(sorted(set(alph.lower()))),SFST_REPLACEMENTS)+\
-			# 	"]:["+\
-			# 		escape("".join(sorted(set(alph.upper()))),SFST_REPLACEMENTS)+\
-			# 	"]"
 
 		output.write(f"""
 #SALPH#={escape(salph,SFST_REPLACEMENTS)}
@@ -254,10 +284,16 @@ if __name__ == "__main__":
 	args.add_argument("-i","--ignore_case", action="store_true", help="if set, tolerate upper and lower case variation in the input (in generation)")
 	args.add_argument("-s","--splitter_symbols",type=str,help="sometimes, Toolbox users cannot decide which analysis is correct and may put alternative analyses, separated by a special marker, e.g., ,, use this for splitting automatically, for the target marker, only")
 	args.add_argument("-noident","--skip_identicals", action="store_true", help="if words on both ends are identical, don't create an extra rule, note that the resulting transducer will then be extended to spellout identical forms *in all cases*")
+	args.add_argument("-r","--reduction_window",type=int, help="with -1, apply full-text matches, with 0, create rules for non-identical substrings, only, larger numbers entail a context window of preceding and following characters to be included in the match; values >= 0 entail -noident; defaults to -1",default=-1)
 	args=args.parse_args()
 
+	if args.reduction_window>=0:
+		args.skip_identicals==True
+
+	close_output=True
 	if args.output==None:
 		args.output=sys.stdout
+		close_output=False
 	else:
 		args.output=open(args.output,"wt")
 
@@ -280,6 +316,7 @@ if __name__ == "__main__":
 	me.add(args.files,splitter=args.splitter_symbols)
 	# pprint(me.src2tgt2freq)
 
-	me.sfst(args.output,freq_cutoff=args.freq_cutoff, ignore_case=args.ignore_case, skip_identicals=args.skip_identicals)
+	me.sfst(args.output,freq_cutoff=args.freq_cutoff, ignore_case=args.ignore_case, skip_identicals=args.skip_identicals, reduction_window=args.reduction_window)
 	args.output.flush()
-	args.output.close()
+	if close_output:
+		args.output.close()

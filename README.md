@@ -182,7 +182,19 @@ fst-mor sliekkas.a
 Switch to generation mode by hitting `<ENTER>` and enter a word, e.g., `arba`. It should perform the lookup automatically.
 
 Note that the resulting transducers are limited in their functionality to what Toolbox offers, as well. However, they can be combined with other FST grammars to handle aspects not covered by Toolbox-style dictionary lookup.
-   
+
+### FST grammars with generalization
+
+Using the parameter `-r`/`--reduction_window` and value `0` for `tb2fst.py`, only mismatching substrings are included in the generated FST grammar. With integer values `> 0`, their context is included in the mapping rules, i.e., one preceding and one following character with `-r 1`.
+
+```bash
+python3 tb2fst.py \tx \sf example/sliekkas_DK_1595.txt -f 1 -o sliekkas_r1.fst -r 1
+```
+
+Note that frequencies are calculated for each occurrence of source and target before the cutoff is applied.
+
+The resulting FST grammar will be much smaller, and more efficient, and also be able to process unseen words. But it will also generate more analyses, so manually curating the resulting FST grammar to filter out or refine rules is highly advisable. If `-r`-transductors become too large to be compiled effectively, increase the value of `-r`. This is also a good way to limit over-generation.
+
 ## Examples and testing
 
 The examples in this README file and in the [`tests.md`](tests.md) file
