@@ -234,8 +234,13 @@ class FSTGenerator:
 		# 	vals="("+"\\\n\t | .)* || (".join(vals)+"\\\n\t| .)*"
 
 		ident_rule=""
+		rule_iterator=""
 		if skip_identicals:
 			ident_rule= "| ."
+			if reduction_window<0:
+				ident_rule+="*" # full-form match, iterate only identicals
+			else:
+				rule_iterator="+" # partial matches, all rules must be iterated
 
 		alph="".join(sorted(set(list(salph)+list(talph))))
 		salph="".join(sorted(salph))
@@ -262,7 +267,7 @@ ALPHABET=[#SALPH#] [#TALPH#] {case_rule}
 
 {name}={vals}
 
-.+ || [#SALPH#]+ || ({name} {ident_rule})* || [#TALPH#]+\n""")
+.+ || [#SALPH#]+ || ({name} {ident_rule}) {rule_iterator} || [#TALPH#]+\n""")
 
 		output.flush()
 
