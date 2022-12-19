@@ -193,7 +193,7 @@ python3 tb2fst.py \tx \sf example/sliekkas_DK_1595.txt -f 1 -o sliekkas_r1.fst -
 
 Note that frequencies are calculated for each occurrence of source and target before the cutoff is applied.
 
-The resulting FST grammar will be much smaller, and more efficient, and also be able to process unseen words. But it will also generate more analyses, so manually curating the resulting FST grammar to filter out or refine rules is highly advisable. If `-r`-transductors become too large to be compiled effectively, increase the value of `-r`. This is also a good way to limit over-generation.
+The resulting FST grammar will be much smaller, and more efficient, and also be able to process unseen words. But it will also generate more analyses, so manually curating the resulting FST grammar to filter out or refine rules is highly advisable. If `-r`-transductors become too large to be compiled effectively, increase the value of `-r`. This is also a good way to constrain over-generation.
 
 ## Examples and testing
 

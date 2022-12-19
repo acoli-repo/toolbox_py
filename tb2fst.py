@@ -235,7 +235,7 @@ class FSTGenerator:
 
 		ident_rule=""
 		if skip_identicals:
-			ident_rule= "| .*"
+			ident_rule= "| ."
 
 		alph="".join(sorted(set(list(salph)+list(talph))))
 		salph="".join(sorted(salph))
@@ -262,7 +262,7 @@ ALPHABET=[#SALPH#] [#TALPH#] {case_rule}
 
 {name}={vals}
 
-.+ || [#SALPH#]+ || {name} {ident_rule} || [#TALPH#]+\n""")
+.+ || [#SALPH#]+ || ({name} {ident_rule})* || [#TALPH#]+\n""")
 
 		output.flush()
 
