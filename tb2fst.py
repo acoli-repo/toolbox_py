@@ -29,14 +29,15 @@ def escape(string:str, replacements:dict):
 def split(string:str, splitter_symbols):
 	base=[string]
 	result=[]
-	for symbol in splitter_symbols:
-		for string in base:
-			if not symbol in string:
-				result.append(string)
-			else:
-				result+=string.split(symbol)
-		base=result
-		result=[]
+	if splitter_symbols!=None and len(splitter_symbols)>0:
+		for symbol in splitter_symbols:
+			for string in base:
+				if not symbol in string:
+					result.append(string)
+				else:
+					result+=string.split(symbol)
+			base=result
+			result=[]
 	result = [ b.strip() for b in base if len(b.strip())>0 ]
 	return result
 
