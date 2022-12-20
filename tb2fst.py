@@ -17,23 +17,7 @@ from io import StringIO
 from pprint import pprint
 import warnings
 
-SFST_REPLACEMENTS={
-	"\\":"\\\\",
-	"=":"\\=",
-	 "-":"\\-",
-	 "|":"\\|",
-	 ",":"\\,",
-	 ".":"\\.",
-	"(":"\\(",
-	")":"\\)",
-	":":"\\:",
-	"?":"\\?",
-	"&":"\\&",
-	" ":"\\ ",
-	"*":"\\*",
-	"[":"\\[",
-	"]":"\\]",
-	"!":"\\!"}
+SFST_REPLACEMENTS={ x:"\\"+x for x in "\\=-|,.():?& *[]!{}" }
 
 def escape(string:str, replacements:dict):
 	""" apply all replacements that apply, in the order as they are stored in replacements, from left to right """
