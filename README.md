@@ -162,7 +162,7 @@ Finite State Transducers (FST) are a very well-established formalism for rule-ba
 There are various FST formalisms, at the moment, we support SFST, as this is readily available under various Linux distributions. The following is tested under Ubuntu 20.04L.
 
 ```bash
-python3 tb2fst.py \tx \sf example/sliekkas_DK_1595.txt -f 0 -o sliekkas.fst -i
+python3 tb2fst.py \tx \sf example/sliekkas_sample.txt -f 0 -o sliekkas.fst -i
 ```
 
 Run `python3 tb2fst.py -h` to get a more detailed explanation on the options. Here, we want to bootstrap a grammar that takes `\tx` input and produces `\sf` output (both referring to the original Toolbox markers). One or more Toolbox files or directories containing Toolbox files can be provided, here `example/sliekkas_DK_1595.txt`. For large data sets, `-f` can be used to specify a frequency threshold. `-o sliekkas.fst` specifies the resulting FST grammar. Finally, the flag `-i` indicates that the input (in generation mode) is processed in a case-insensitive manner.
@@ -188,7 +188,7 @@ Note that the resulting transducers are limited in their functionality to what T
 Using the parameter `-r`/`--reduction_window` and value `0` for `tb2fst.py`, only mismatching substrings are included in the generated FST grammar. With integer values `> 0`, their context is included in the mapping rules, i.e., one preceding and one following character with `-r 1`.
 
 ```bash
-python3 tb2fst.py \tx \sf example/sliekkas_DK_1595.txt -f 1 -o sliekkas_r1.fst -r 1
+python3 tb2fst.py \tx \sf example/sliekkas_sample.txt -f 0 -o sliekkas_r0.fst -r 1
 ```
 
 Note that frequencies are calculated for each occurrence of source and target before the cutoff is applied.

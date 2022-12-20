@@ -1,0 +1,65 @@
+\_sh v3.0  1036 Text
+
+\id DK_1595
+
+\ref 1,1-2
+\tx KATHE=||CHISMAS
+\sf kathechismas
+\nf katekizmas
+\lm katekizmas
+\lma kateki̇̀zmas (2)
+\glL ***
+\geL catechism
+\lg olt
+\psL NA
+\psF NA
+\pdL a1_Masc
+\pdF a_Masc
+\pdlF Sg_Nom
+
+\ref 1,3
+\tx ARBA  MOKSLAS
+\sf arba  mokslas
+\nf arba  mokslas
+\lm arba  mokslas
+\lma arbà mókslas (1)
+\glL ***   ***
+\geL or    knowledge
+\lg olt   olt
+\psL KO    NA
+\psF KO    NA
+\pdL -     a1_Masc
+\pdF -     a_Masc
+\pdlF -     Sg_Nom
+
+\ref 1,4
+\tx KIEKWIENAM
+\sf kiekvienam
+\nf kiekvienam
+\lm kiekvienas
+\lma kiekvi̇́enas, -à (3)
+\glL ***
+\geL every
+\lg olt
+\psL PI
+\psF PI
+\pdL a2,o6
+\pdF a
+\pdlF Masc_Sg_Dat
+
+\id DzP_1503
+
+\ref 06_Pater_noster_6
+\tx nijevijaſki                    mvſu      ſʒalanv    ale          mvſ   gijalbijak                                 nvagi
+\sf nyevyaski                       musu       žalanu      ale          mus    gyalbyak                                   nuagi
+\nf ne      vesk                    mūsų     žalon       ale          mus    gelbėk                                    nuo  gi
+\lm ne      vesti                   aš        žala        ale          aš    gelbėti                                   nuo  gi
+\lma nè     vèsti, vẽda, vẽdė àš       žalà (4)   alè, àle àš   gélbėti, -ėja (gélbi, gélbsti), -ėjo nuõ gì
+\glL ***     ***                     ***        pagunda?     bet          ***    ***                                        ***  ***
+\geL not     lead                    I          temptation   but          I      deliver                                    from PTK
+\lg olt     olt                     olt        olt          olt          olt    olt                                        olt  olt
+\psL PTK     V                       PPER       NA           KO           PPER   V                                          AP   PTK
+\psF PTKPNEG V                       PPER       NAA          KO           PPER   V                                          APPR PTKE
+\pdL -       -ti,-a,-ė              -          o6_Fem       -            -      -ėti,-ėja,-ėjo                          -    -
+\pdF -       ki-Imp                  -          o_Fem        -            -      ki-Imp                                     -    -
+\pdlF -       Imp_Sg_2_(ki)           Pl_Gen_(u) Sg_Ill_(anu) -            Pl_Acc Imp_Sg_2_(ijak)                            -    -
